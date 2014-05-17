@@ -1,0 +1,741 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="utf-8">
+    <title>Kuantum Field</title>
+    <meta name="description" content="">
+    <meta name="author" content="K. Chen">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <!-- Le HTML5 shim, for IE6-8 support of HTML elements -->
+    <!--[if lt IE 9]>
+    <script src="/theme/html5.js"></script>
+    <![endif]-->
+
+    <!-- Le styles -->
+    <link href="//netdna.bootstrapcdn.com/twitter-bootstrap/2.1.1/css/bootstrap.no-icons.min.css" rel="stylesheet">
+    <link href="/theme/local.css" rel="stylesheet">
+    <link href="/theme/pygments.css" rel="stylesheet">
+    <link href="/theme/font-awesome.css" rel="stylesheet">
+    <link href='http://fonts.googleapis.com/css?family=Gudea:400,400italic|Alegreya+SC' rel='stylesheet' type='text/css'>
+</head>
+
+<body>
+<header class="blog-header">
+  <div class="container">
+    <div class="row-fluid">
+      <div class="span9">
+	<a href="" class="brand">Kuantum Field</a>
+      </div>
+
+      <div class="span3" id="blog-nav">
+	<ul class="nav nav-pills pull-right">
+	    <li >
+	      <a href="/category/data-science.html ">Data Science</a>
+	</ul>
+      </div>
+    </div> <!-- End of fluid row-->
+  </div>   <!-- End of Container-->
+</header>
+    
+<div class="container">
+    <div class="content">
+    <div class="row-fluid">
+
+        <div class="span10">
+        
+
+        
+
+    <div class='row-fluid''>
+        <div class="article-title span9">
+            <a href="/my-super-post.html"><h1>Zipf's law for city population</h1></a>
+        </div>
+    </div>
+    <div class="row-fluid">
+      <div class="span2">
+<p>Sat 10 May 2014 </p>
+
+<p style="text-align: left;">
+Filed under <a href="/category/data-science.html">Data Science</a>
+</p>
+<p style="text-align: left;">
+ 
+    Tags <a href="/tag/ipython.html">IPython</a> <a href="/tag/pandas.html">pandas</a> </p>
+<p>
+</p>
+      </div>
+      <div class="article-content span8">
+	<h2>What is Zipf's law for city?</h2>
+<p>Let's rank all the cities in the U.S. by their population. The rank 1st (i.e.
+most populated) city, New York, with a (2012) population of 8,336,697, has
+roughly twice that of the rank 2nd city (Los Angeles), and triple that of 3rd
+(Chicago), and so on. This approximate rank-size rule, named after the famous
+American linguist <a href="http://en.wikipedia.org/wiki/George_Kingsley_Zipf">G. K.
+Zipf</a>, can be stated more
+concisely as a regression relation,</p>
+<p><center>$\ln r = K - a \ln p$</center></p>
+<p>where $r$ and $p$ are the rank and population of a city, $-a$ and $K$ are the
+slope and intercept. For Zipf's law, $a$ should be equal to $1$, while more
+generally other values of $a$ constitute a broader family of statistical
+distributions called <em>Pareto</em> distribution.</p>
+<p>As data scientists, we are instinctly curious about <em>anything statistical</em>. So
+why not grab the data, and verify this law by ourselves?</p>
+<h2>Getting the data</h2>
+<p>As the first step, we download and parse the "Incorporated Places and Minor
+Civil Divisions Datasets: Subcounty Resident Population Estimates: April 1, 2010
+to July 1, 2012" from <a href="#census_data">US Census Bureau</a>, which contains the
+population data for all cities:</p>
+<div class="highlight"><pre><span class="c"># Use urllib to retrieve data</span>
+<span class="kn">import</span> <span class="nn">urllib</span>
+
+<span class="n">src_url</span> <span class="o">=</span> <span class="s">&quot;http://www.census.gov/popest/data/cities/totals/2012/images/SUB-EST2012.csv&quot;</span>
+<span class="n">dest_fname</span> <span class="o">=</span> <span class="s">&quot;population_2012.csv&quot;</span>
+<span class="n">urllib</span><span class="o">.</span><span class="n">request</span><span class="o">.</span><span class="n">urlretrieve</span><span class="p">(</span><span class="n">src_url</span><span class="p">,</span> <span class="n">dest_fname</span><span class="p">)</span>
+
+<span class="p">(</span><span class="s">&#39;population_2012.csv&#39;</span><span class="p">,</span> <span class="o">&lt;</span><span class="n">http</span><span class="o">.</span><span class="n">client</span><span class="o">.</span><span class="n">HTTPMessage</span> <span class="n">at</span> <span class="mh">0x7fb7475497b8</span><span class="o">&gt;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>Then, we take a peek at the data using pandas.</p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+<span class="c"># Set encoding to ISO-8859-1, otherwise pandas would freak out</span>
+<span class="n">data</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">io</span><span class="o">.</span><span class="n">parsers</span><span class="o">.</span><span class="n">read_csv</span><span class="p">(</span><span class="n">dest_fname</span><span class="p">,</span> <span class="n">encoding</span> <span class="o">=</span> <span class="s">&quot;ISO-8859-1&quot;</span><span class="p">)</span>
+<span class="n">data</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>SUMLEV</th>
+      <th>STATE</th>
+      <th>COUNTY</th>
+      <th>PLACE</th>
+      <th>COUSUB</th>
+      <th>CONCIT</th>
+      <th>NAME</th>
+      <th>STNAME</th>
+      <th>CENSUS2010POP</th>
+      <th>ESTIMATESBASE2010</th>
+      <th>POPESTIMATE2010</th>
+      <th>POPESTIMATE2011</th>
+      <th>POPESTIMATE2012</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>  40</td>
+      <td> 1</td>
+      <td> 0</td>
+      <td>   0</td>
+      <td> 0</td>
+      <td> 0</td>
+      <td>         Alabama</td>
+      <td> Alabama</td>
+      <td> 4779736</td>
+      <td> 4779745</td>
+      <td> 4784762</td>
+      <td> 4803689</td>
+      <td> 4822023</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td> 162</td>
+      <td> 1</td>
+      <td> 0</td>
+      <td> 124</td>
+      <td> 0</td>
+      <td> 0</td>
+      <td>  Abbeville city</td>
+      <td> Alabama</td>
+      <td>    2688</td>
+      <td>    2688</td>
+      <td>    2682</td>
+      <td>    2688</td>
+      <td>    2654</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td> 162</td>
+      <td> 1</td>
+      <td> 0</td>
+      <td> 460</td>
+      <td> 0</td>
+      <td> 0</td>
+      <td> Adamsville city</td>
+      <td> Alabama</td>
+      <td>    4522</td>
+      <td>    4522</td>
+      <td>    4518</td>
+      <td>    4504</td>
+      <td>    4490</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td> 162</td>
+      <td> 1</td>
+      <td> 0</td>
+      <td> 484</td>
+      <td> 0</td>
+      <td> 0</td>
+      <td>    Addison town</td>
+      <td> Alabama</td>
+      <td>     758</td>
+      <td>     756</td>
+      <td>     753</td>
+      <td>     751</td>
+      <td>     746</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td> 162</td>
+      <td> 1</td>
+      <td> 0</td>
+      <td> 676</td>
+      <td> 0</td>
+      <td> 0</td>
+      <td>      Akron town</td>
+      <td> Alabama</td>
+      <td>     356</td>
+      <td>     356</td>
+      <td>     355</td>
+      <td>     345</td>
+      <td>     344</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 13 columns</p>
+</div>
+
+<p>One thing we notice immediately is that this table not only contains population
+of cities, but also contains that of state, county and town. Before we run any
+analysis, we select the rows corresponding to cities and store them in a
+DataFrame <em>city_data</em>.</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">is_city</span><span class="p">(</span><span class="n">s</span><span class="p">):</span>
+    <span class="k">return</span> <span class="s">&quot;city&quot;</span> <span class="ow">in</span> <span class="n">s</span>
+
+<span class="n">city_data</span> <span class="o">=</span> <span class="n">data</span><span class="p">[</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">is_city</span><span class="p">,</span> <span class="n">data</span><span class="p">[</span><span class="s">&quot;NAME&quot;</span><span class="p">]))]</span>
+<span class="c"># I wish I could write the above as </span>
+<span class="c"># city_data = data[&quot;city&quot; in data[&quot;NAME&quot;]]</span>
+<span class="c"># but it doesn&#39;t work</span>
+</pre></div>
+
+
+<h3>Does Zipf's hold ?</h3>
+<p>We select the last column (POPESTIMATE2012), sort it from high to low, and
+assign the rank. Then it is quite straightforward to plot $r$ vs $p$:</p>
+<div class="highlight"><pre><span class="n">population</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="n">city_data</span><span class="p">[</span><span class="s">&quot;POPESTIMATE2012&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">astype</span><span class="p">(</span><span class="nb">int</span><span class="p">)</span><span class="o">.</span><span class="n">order</span><span class="p">(</span><span class="n">ascending</span><span class="o">=</span><span class="bp">False</span><span class="p">))</span>
+<span class="n">ln_p</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="n">population</span><span class="p">)</span>
+<span class="n">ln_r</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="n">arange</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">population</span><span class="p">)</span><span class="o">+</span><span class="mi">1</span><span class="p">))</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">ln_p</span><span class="p">,</span> <span class="n">ln_r</span><span class="p">,</span> <span class="s">&quot;bo&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>  <span class="n">markeredgecolor</span><span class="o">=</span><span class="s">&#39;b&#39;</span><span class="p">)</span>
+<span class="n">xlabel</span><span class="p">(</span><span class="s">&#39;$\ln p$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ylabel</span><span class="p">(</span><span class="s">&#39;$\ln r$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">title</span><span class="p">(</span><span class="s">&quot;Population vs Rank for all U.S. cities</span><span class="se">\n</span><span class="s">(source from 2012 census data)&quot;</span><span class="p">)</span>
+<span class="n">grid</span><span class="p">()</span>
+</pre></div>
+
+
+<p><center>
+<img alt="png" src="/images/Zipf_9_0.png" />
+</center></p>
+<p>Does Zipf's law hold? Well, not quite! We notice
+1. the rank flattens out for cities with small population, which apparantly means
+Zipf's law breaks down there
+2. however, the upper tail where $\ln p &gt; 10$, does look like promising for a
+good linear fit.</p>
+<p>So let's make a cutoff, and carry out a simple ordinary linear regression for
+the tail:</p>
+<div class="highlight"><pre><span class="c"># import statsmodel for regression analysis</span>
+<span class="kn">import</span> <span class="nn">statsmodels.api</span> <span class="kn">as</span> <span class="nn">sm_api</span>
+<span class="kn">import</span> <span class="nn">statsmodels.formula.api</span> <span class="kn">as</span> <span class="nn">smf_api</span>
+
+<span class="c"># Select the data where ln_p &gt; 10</span>
+<span class="n">selection</span> <span class="o">=</span> <span class="n">ln_p</span> <span class="o">&gt;</span> <span class="mi">10</span>
+<span class="n">ln_p_tail</span><span class="p">,</span> <span class="n">ln_r_tail</span> <span class="o">=</span> <span class="n">ln_p</span><span class="p">[</span><span class="n">selection</span><span class="p">],</span> <span class="n">ln_r</span><span class="p">[</span><span class="n">selection</span><span class="p">]</span>
+
+<span class="c"># Intercept needs to be added manually</span>
+<span class="c"># See http://statsmodels.sourceforge.net/devel/generated/statsmodels.regression.linear_model.OLS.html</span>
+<span class="n">ln_p_tail_with_const</span> <span class="o">=</span> <span class="n">sm_api</span><span class="o">.</span><span class="n">add_constant</span><span class="p">(</span><span class="n">ln_p_tail</span><span class="p">)</span>
+
+<span class="n">model</span> <span class="o">=</span> <span class="n">smf_api</span><span class="o">.</span><span class="n">OLS</span><span class="p">(</span><span class="n">ln_r_tail</span><span class="p">,</span> <span class="n">ln_p_tail_with_const</span><span class="p">)</span>
+<span class="n">fit</span> <span class="o">=</span> <span class="n">model</span><span class="o">.</span><span class="n">fit</span><span class="p">()</span>
+<span class="k">print</span><span class="p">(</span><span class="n">fit</span><span class="o">.</span><span class="n">summary</span><span class="p">())</span>
+
+                            <span class="n">OLS</span> <span class="n">Regression</span> <span class="n">Results</span>                            
+<span class="o">==============================================================================</span>
+<span class="n">Dep</span><span class="o">.</span> <span class="n">Variable</span><span class="p">:</span>                      <span class="n">y</span>   <span class="n">R</span><span class="o">-</span><span class="n">squared</span><span class="p">:</span>                       <span class="mf">0.991</span>
+<span class="n">Model</span><span class="p">:</span>                            <span class="n">OLS</span>   <span class="n">Adj</span><span class="o">.</span> <span class="n">R</span><span class="o">-</span><span class="n">squared</span><span class="p">:</span>                  <span class="mf">0.991</span>
+<span class="n">Method</span><span class="p">:</span>                 <span class="n">Least</span> <span class="n">Squares</span>   <span class="n">F</span><span class="o">-</span><span class="n">statistic</span><span class="p">:</span>                 <span class="mf">4.281e+05</span>
+<span class="n">Date</span><span class="p">:</span>                <span class="n">Sun</span><span class="p">,</span> <span class="mi">11</span> <span class="n">May</span> <span class="mi">2014</span>   <span class="n">Prob</span> <span class="p">(</span><span class="n">F</span><span class="o">-</span><span class="n">statistic</span><span class="p">):</span>               <span class="mf">0.00</span>
+<span class="n">Time</span><span class="p">:</span>                        <span class="mi">09</span><span class="p">:</span><span class="mi">47</span><span class="p">:</span><span class="mo">03</span>   <span class="n">Log</span><span class="o">-</span><span class="n">Likelihood</span><span class="p">:</span>                 <span class="mf">3611.8</span>
+<span class="n">No</span><span class="o">.</span> <span class="n">Observations</span><span class="p">:</span>                <span class="mi">3776</span>   <span class="n">AIC</span><span class="p">:</span>                            <span class="o">-</span><span class="mf">7220.</span>
+<span class="n">Df</span> <span class="n">Residuals</span><span class="p">:</span>                    <span class="mi">3774</span>   <span class="n">BIC</span><span class="p">:</span>                            <span class="o">-</span><span class="mf">7207.</span>
+<span class="n">Df</span> <span class="n">Model</span><span class="p">:</span>                           <span class="mi">1</span>                                         
+<span class="o">==============================================================================</span>
+                 <span class="n">coef</span>    <span class="n">std</span> <span class="n">err</span>          <span class="n">t</span>      <span class="n">P</span><span class="o">&gt;|</span><span class="n">t</span><span class="o">|</span>      <span class="p">[</span><span class="mf">95.0</span><span class="o">%</span> <span class="n">Conf</span><span class="o">.</span> <span class="n">Int</span><span class="o">.</span><span class="p">]</span>
+<span class="o">------------------------------------------------------------------------------</span>
+<span class="n">const</span>         <span class="mf">21.1483</span>      <span class="mf">0.021</span>    <span class="mf">992.206</span>      <span class="mf">0.000</span>        <span class="mf">21.106</span>    <span class="mf">21.190</span>
+<span class="n">x1</span>            <span class="o">-</span><span class="mf">1.2748</span>      <span class="mf">0.002</span>   <span class="o">-</span><span class="mf">654.287</span>      <span class="mf">0.000</span>        <span class="o">-</span><span class="mf">1.279</span>    <span class="o">-</span><span class="mf">1.271</span>
+<span class="o">==============================================================================</span>
+<span class="n">Omnibus</span><span class="p">:</span>                     <span class="mf">1490.292</span>   <span class="n">Durbin</span><span class="o">-</span><span class="n">Watson</span><span class="p">:</span>                   <span class="mf">0.019</span>
+<span class="n">Prob</span><span class="p">(</span><span class="n">Omnibus</span><span class="p">):</span>                  <span class="mf">0.000</span>   <span class="n">Jarque</span><span class="o">-</span><span class="n">Bera</span> <span class="p">(</span><span class="n">JB</span><span class="p">):</span>            <span class="mf">19278.020</span>
+<span class="n">Skew</span><span class="p">:</span>                          <span class="o">-</span><span class="mf">1.513</span>   <span class="n">Prob</span><span class="p">(</span><span class="n">JB</span><span class="p">):</span>                         <span class="mf">0.00</span>
+<span class="n">Kurtosis</span><span class="p">:</span>                      <span class="mf">13.648</span>   <span class="n">Cond</span><span class="o">.</span> <span class="n">No</span><span class="o">.</span>                         <span class="mf">155.</span>
+<span class="o">==============================================================================</span>
+</pre></div>
+
+
+<p>Zipf's result, namely $a=1$, is rejected because it doesn't fit into the 95%
+confidence interval $[-1.279, -1.271]$. To visualize, the data and fit are plot
+together below,</p>
+<div class="highlight"><pre><span class="n">plot</span><span class="p">(</span><span class="n">ln_p_tail</span><span class="p">,</span> <span class="n">ln_r_tail</span><span class="p">,</span> <span class="s">&quot;ro&quot;</span><span class="p">,</span> <span class="n">markersize</span><span class="o">=</span><span class="mi">5</span><span class="p">,</span>  <span class="n">markeredgecolor</span><span class="o">=</span><span class="sc">&#39;r&#39;</span><span class="p">)</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">ln_p_tail</span><span class="p">,</span> <span class="n">fit</span><span class="p">.</span><span class="n">fittedvalues</span><span class="p">,</span> <span class="s">&quot;b-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="n">r</span><span class="s">&quot;$\ln r = 21.1483 - 1.2748 \ln p$&quot;</span><span class="p">)</span>
+<span class="n">xlabel</span><span class="p">(</span><span class="n">r</span><span class="s">&quot;$\ln p$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ylabel</span><span class="p">(</span><span class="n">r</span><span class="s">&quot;$\ln r$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">title</span><span class="p">(</span><span class="n">r</span><span class="s">&quot;Regression of $\ln r$ on $\ln p$ for $\ln p&gt;10$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">legend</span><span class="p">()</span>
+<span class="n">grid</span><span class="p">()</span>
+</pre></div>
+
+
+<p><center>
+<img alt="png" src="/images/Zipf_13_0.png" />
+</center></p>
+<h1>Gibrat's random growth model and Log-Normal distribution</h1>
+<p>This apparent contradiction is explained by J. Eeckhout in his <a href="#Eeckhout">work</a>
+published in 2004. Eeckhout found that depending on where the cutoff is made,
+the regression of $\ln r$ on $\ln p$ yield different values of $a$. The fact
+that Zipf obtained $a=1$ is just a coincidence.</p>
+<p>More importantly. the rank-size relation agrees better with a log-normal
+distribution than a Pareto distribution, which means $\ln p$ is normally
+distributed. We can easily verify this statement as well!</p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="kn">as</span> <span class="nn">stats</span>
+<span class="c"># select valid population (population &gt; 10)</span>
+<span class="n">valid_population</span> <span class="o">=</span> <span class="n">population</span><span class="p">[</span><span class="n">population</span><span class="o">&gt;</span><span class="mi">10</span><span class="p">]</span>
+<span class="n">log_valid_population</span> <span class="o">=</span> <span class="n">log</span><span class="p">(</span><span class="n">valid_population</span><span class="p">)</span>
+
+<span class="n">mybins</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mf">0.25</span><span class="p">)</span>
+<span class="n">count</span><span class="p">,</span> <span class="n">bin_edge</span><span class="p">,</span> <span class="n">_</span> <span class="o">=</span> <span class="n">hist</span><span class="p">(</span><span class="n">log_valid_population</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">mybins</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">bin_center</span> <span class="o">=</span> <span class="p">(</span><span class="n">bin_edge</span><span class="p">[:</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> <span class="o">+</span> <span class="n">bin_edge</span><span class="p">[</span><span class="mi">1</span><span class="p">:])</span><span class="o">/</span><span class="mi">2</span>
+<span class="n">loc</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">log_valid_population</span><span class="p">)</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">bin_center</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">norm</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">bin_center</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">),</span> <span class="s">&quot;r-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&quot;Gaussian&quot;</span><span class="p">)</span>
+
+<span class="c"># Only fit Pareto to ln p &gt; 8</span>
+<span class="c"># But it is still a crappy fit compared to normal</span>
+<span class="n">b</span><span class="p">,</span> <span class="n">loc</span><span class="p">,</span> <span class="n">scale</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">pareto</span><span class="o">.</span><span class="n">fit</span><span class="p">(</span><span class="n">log_valid_population</span><span class="p">[</span><span class="n">log_valid_population</span><span class="o">&gt;</span><span class="mi">8</span><span class="p">])</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">bin_center</span><span class="p">,</span> <span class="n">stats</span><span class="o">.</span><span class="n">pareto</span><span class="o">.</span><span class="n">pdf</span><span class="p">(</span><span class="n">bin_center</span><span class="p">,</span> <span class="n">loc</span><span class="o">=</span><span class="n">loc</span><span class="p">,</span> <span class="n">scale</span><span class="o">=</span><span class="n">scale</span><span class="p">,</span> <span class="n">b</span><span class="o">=</span><span class="n">b</span><span class="p">),</span> <span class="s">&quot;g-&quot;</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&quot;Pareto (for $\ln p&gt;8$)&quot;</span><span class="p">)</span>
+<span class="n">xlabel</span><span class="p">(</span><span class="s">r&quot;$\ln p$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ylabel</span><span class="p">(</span><span class="s">r&quot;$\mathrm{p.d.f.}(\ln p)$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="n">legend</span><span class="p">(</span><span class="n">loc</span><span class="o">=</span><span class="s">&quot;upper left&quot;</span><span class="p">)</span>
+<span class="n">grid</span><span class="p">()</span>
+<span class="n">title</span><span class="p">(</span><span class="s">r&quot;Distribution of $\ln p$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+
+
+
+
+
+<span class="o">&lt;</span><span class="n">matplotlib</span><span class="o">.</span><span class="n">text</span><span class="o">.</span><span class="n">Text</span> <span class="n">at</span> <span class="mh">0x7fb734456f98</span><span class="o">&gt;</span>
+</pre></div>
+
+
+<p><center>
+<img alt="png" src="/images/Zipf_15_1.png" />
+</center></p>
+<p>The fact that $\ln p$ is normally distributed is a natural result of Gibrat's
+law, which postulates that over time every city grows or shrinks proportionally
+in a stochastic manner, namely,</p>
+<p><center>$\frac{p(n+1)}{p(n)} = g$</center></p>
+<p>where $p(n)$ is the population at a discrete time step $n$ (year for instance),
+and $g$ is a <em>stochastic</em> fractional growth rate. At each time step $n$,
+different cities are subject to different $g$ (hence growth for some cities and
+shrink for others), these $g$ neverless are assumed to be sampled from the same
+distribution across all cities.</p>
+<p>Rewriting Gibrat's law as
+<center>\begin{align}\ln p(n)&amp; = \ln g(n-1) + \ln p(n-1) \&amp;= \ln g(n-1) + \ln
+g(n-2) + \ln p(n-2)\ &amp;= \ldots \ &amp;= \displaystyle{\sum_{i=0}^{n-1} \ln g(i) +
+\ln p(0)}\nonumber\end{align}</center></p>
+<p>one can see that under the <a href="http://en.wikipedia.org/wiki/Law_of_large_numbers">law of large
+numbers</a>, as $n \rightarrow
+\infty$, $\ln p(n) \sim \mathcal{N}(\mu n, \sigma^2 n)$, where $\mu$ and
+$\sigma^2$ are the mean and variance of $\ln g$, hence the normal distribution
+of $\ln p$.</p>
+<h1>Monte Carlo Simulation</h1>
+<p>Gibrat's law seems to make more sense, but the ultimate test of this model is to
+run a Monte-Carlo simulation. We can think of an experiment, where
+We dial the time back to 2500 years ago, roughly the time when cities began to
+exist in human history. We assume there there were as many cities as there are
+today, and we prepare the citites with the same population (which is estimated
+based on the mean growth rate $\langle g\rangle$ and the population today). Each
+year, we play god and draw a random growth rate $g$ for each city to determine
+its population next year. We repeat this process over and over again, until the
+time reach the year of 2014. We check if the population obtained this way agrees
+with the actual population.</p>
+<h2>Estimating $g$ from historical data</h2>
+<p>To run this simulation, we need to have a statistical description of the
+frational growth rate $g$, which can be estimated based on the historical
+population for each city. Fortunately, this data has been compiled at
+http://www.biggestuscities.com/top-1000. On the homepage are the top 1000
+populated cities in the U.S. If the link of each city is followed, you will be
+directed to another webpage, where the annual population of the city since
+earliest 1840 is listed (see figure below).
+<table border="0" >
+<tr><td><img src="images/website_img1.png" style="width: 300px;"/></td>
+     <td><img src="images/website_img2.png" style="width: 300px;"/></td>
+       <caption align="bottom">Left: Top 1000 populated cities; Right: Annual
+population record if the name of a city (in this case New York) is clicked
+</caption></p>
+<p></tr>
+</table></p>
+<p>Being lazy, we automate the web scraping process using the <em>BeautifulSoup</em>
+module. If you are not familiar with web scraping, <a href="#Ref1">Greg Reda</a> has a
+really good reference which inspires a big part of this tutorial.</p>
+<div class="highlight"><pre><span class="c"># Import BeautifulSoup and urlopen modules</span>
+<span class="kn">from</span> <span class="nn">bs4</span> <span class="kn">import</span> <span class="n">BeautifulSoup</span>
+<span class="kn">from</span> <span class="nn">urllib.request</span> <span class="kn">import</span> <span class="n">urlopen</span>
+<span class="kn">import</span> <span class="nn">pandas</span> <span class="kn">as</span> <span class="nn">pd</span>
+
+<span class="c"># Short hand for the url</span>
+<span class="n">base_url</span> <span class="o">=</span> <span class="s">&quot;http://www.biggestuscities.com&quot;</span>
+
+<span class="c"># Read the homepage into soup</span>
+<span class="n">html</span> <span class="o">=</span> <span class="n">urlopen</span><span class="p">(</span><span class="n">base_url</span><span class="o">+</span><span class="s">&quot;/top-1000&quot;</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+<span class="n">soup</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="s">&quot;lxml&quot;</span><span class="p">)</span>
+</pre></div>
+
+
+<p>The <em>soup</em> object is a large chunk of raw, unparsed HTML code. We would like to
+have the city name and the url which lead to the annual population webpage, to
+build a DataFrame (let's call it <em>city_info</em>), which may look like this</p>
+<table>
+<thead>
+<tr>
+<th></th>
+<th>name</th>
+<th>url</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>New York</td>
+<td>http://www.biggestuscities.com/city/new-york-new-york</td>
+</tr>
+<tr>
+<td>1</td>
+<td>Los Angeles</td>
+<td>http://www.biggestuscities.com/city/los-</td>
+</tr>
+<tr>
+<td>angeles-california</td>
+<td></td>
+<td></td>
+</tr>
+<tr>
+<td>...</td>
+<td>...</td>
+<td>...</td>
+</tr>
+</tbody>
+</table>
+<p>How can we extract these information? One easy way is to inspect the HTML tags
+for the clickable city names. This can be easily done using the <em>Inspect
+Element</em> tool in Firefox or equivalent tool in Chrome.
+<img src="images/inspector.png" style="width: 750px;"/></p>
+<p>You will see that these HTML tags all have the same structure</p>
+<div class="highlight"><pre><span class="nt">&lt;a</span> <span class="na">class=</span><span class="s">&quot;link&quot;</span> <span class="na">href=</span><span class="s">&quot;city/new-york-new-york&quot;</span><span class="nt">&gt;</span>
+</pre></div>
+
+
+<p>If you are not familiar with HTML, you can pick it up really quick from <a href="#Ref2">Ref
+4</a>. So let's use soup to fetch only these special tags for us.</p>
+<div class="highlight"><pre><span class="c"># Valid tags are those with &quot;href&quot; attribute which begins with &quot;/city&quot;</span>
+<span class="n">valid_tags</span> <span class="o">=</span> <span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">tag</span><span class="p">:</span> <span class="n">tag</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;href&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">)</span><span class="o">.</span><span class="n">startswith</span><span class="p">(</span><span class="s">&quot;/city&quot;</span><span class="p">),</span> <span class="n">soup</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="bp">True</span><span class="p">)))</span>
+
+<span class="k">def</span> <span class="nf">make_city_info</span><span class="p">(</span><span class="n">tag</span><span class="p">):</span>
+    <span class="c"># city names are the word on the first line of the tag, with whitespaces stripped</span>
+    <span class="c"># urls are the attribute value of href, prepended by base_url</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">({</span> <span class="s">&#39;name&#39;</span> <span class="p">:</span> <span class="n">tag</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">split</span><span class="p">(</span><span class="s">&#39;</span><span class="se">\n</span><span class="s">&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">strip</span><span class="p">(</span><span class="s">&#39; &#39;</span><span class="p">),</span> <span class="s">&#39;url&#39;</span> <span class="p">:</span> <span class="n">base_url</span><span class="o">+</span><span class="n">tag</span><span class="o">.</span><span class="n">get</span><span class="p">(</span><span class="s">&#39;href&#39;</span><span class="p">)</span> <span class="p">})</span>
+
+<span class="c"># Concatenate the DataSeries, and transpose it</span>
+<span class="n">city_info</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">concat</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">map</span><span class="p">(</span><span class="n">make_city_info</span><span class="p">,</span> <span class="n">valid_tags</span><span class="p">)),</span> <span class="n">axis</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span><span class="o">.</span><span class="n">T</span>
+
+
+<span class="c"># Let&#39;s take a look</span>
+<span class="n">city_info</span><span class="o">.</span><span class="n">head</span><span class="p">()</span>
+</pre></div>
+
+
+<div style="max-height:1000px;max-width:1500px;overflow:auto;">
+<table border="1" class="dataframe">
+  <thead>
+    <tr style="text-align: right;">
+      <th></th>
+      <th>name</th>
+      <th>url</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <th>0</th>
+      <td>     New York</td>
+      <td> http://www.biggestuscities.com/city/new-york-n...</td>
+    </tr>
+    <tr>
+      <th>1</th>
+      <td>  Los Angeles</td>
+      <td> http://www.biggestuscities.com/city/los-angele...</td>
+    </tr>
+    <tr>
+      <th>2</th>
+      <td>      Chicago</td>
+      <td> http://www.biggestuscities.com/city/chicago-il...</td>
+    </tr>
+    <tr>
+      <th>3</th>
+      <td>      Houston</td>
+      <td> http://www.biggestuscities.com/city/houston-texas</td>
+    </tr>
+    <tr>
+      <th>4</th>
+      <td> Philadelphia</td>
+      <td> http://www.biggestuscities.com/city/philadelph...</td>
+    </tr>
+  </tbody>
+</table>
+<p>5 rows × 2 columns</p>
+</div>
+
+<p>Now that we have the url for each city's historical population, we can grab that
+webpage, parse the HTML again using <em>BeautifulSoup</em>. This time the infomation is
+in an HTML table. You can follow the code below easily with the extra bit of
+help from the comment.</p>
+<div class="highlight"><pre><span class="k">def</span> <span class="nf">extract_annual_population</span><span class="p">(</span><span class="n">url</span><span class="p">):</span>
+    <span class="n">html</span> <span class="o">=</span> <span class="n">urlopen</span><span class="p">(</span><span class="n">url</span><span class="p">)</span><span class="o">.</span><span class="n">read</span><span class="p">()</span>
+    <span class="n">soup</span> <span class="o">=</span> <span class="n">BeautifulSoup</span><span class="p">(</span><span class="n">html</span><span class="p">,</span> <span class="s">&quot;lxml&quot;</span><span class="p">)</span>
+
+    <span class="c"># The table of interest is the last table </span>
+    <span class="n">table</span> <span class="o">=</span> <span class="n">soup</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s">&quot;table&quot;</span><span class="p">)[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span> 
+    <span class="n">rows</span> <span class="o">=</span> <span class="n">table</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s">&#39;tr&#39;</span><span class="p">)[</span><span class="mi">1</span><span class="p">:]</span>
+    <span class="n">r</span> <span class="o">=</span> <span class="p">{}</span>
+    <span class="k">for</span> <span class="n">i</span><span class="p">,</span> <span class="n">tr</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">rows</span><span class="p">):</span>
+        <span class="n">cols</span> <span class="o">=</span> <span class="n">tr</span><span class="o">.</span><span class="n">findAll</span><span class="p">(</span><span class="s">&#39;td&#39;</span><span class="p">)</span>
+
+        <span class="c"># Extract the year (1st column) and population (2nd column)</span>
+        <span class="c"># Notice you cannot use str.strip to remove comma</span>
+        <span class="n">r</span><span class="p">[</span><span class="nb">int</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span><span class="o">.</span><span class="n">string</span><span class="p">)]</span> <span class="o">=</span> <span class="nb">int</span><span class="p">(</span><span class="n">cols</span><span class="p">[</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">string</span><span class="o">.</span><span class="n">replace</span><span class="p">(</span><span class="s">&#39;,&#39;</span><span class="p">,</span> <span class="s">&#39;&#39;</span><span class="p">))</span>
+
+        <span class="c"># Finally, convert dict r into a pandas.Series</span>
+    <span class="k">return</span> <span class="n">pd</span><span class="o">.</span><span class="n">Series</span><span class="p">(</span><span class="n">r</span><span class="p">)</span>
+
+
+<span class="c"># Extract the annual population</span>
+<span class="n">annual_population</span> <span class="o">=</span> <span class="n">city_info</span><span class="p">[</span><span class="s">&quot;url&quot;</span><span class="p">]</span><span class="o">.</span><span class="n">apply</span><span class="p">(</span><span class="n">extract_annual_population</span><span class="p">)</span>
+
+
+<span class="c"># Merge city_info and annual_population, based on index</span>
+<span class="n">city_info</span> <span class="o">=</span> <span class="n">pd</span><span class="o">.</span><span class="n">merge</span><span class="p">(</span><span class="n">city_info</span><span class="p">,</span> <span class="n">annual_population</span><span class="p">,</span> <span class="n">left_index</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">right_index</span><span class="o">=</span><span class="bp">True</span><span class="p">,</span> <span class="n">suffixes</span><span class="o">=</span><span class="p">[</span><span class="s">&#39;&#39;</span><span class="p">,</span><span class="s">&#39;&#39;</span><span class="p">])</span>
+</pre></div>
+
+
+<p>Finally, we simply calculate the fractional growth rate given by the ratio of
+population in adjacent years. In case where population is not available  for
+certain years (e.g. New York 1841 to 1849), we instead use</p>
+<p><center>$g = \left(\frac{p(m)}{p(n)}\right)^{\frac{1}{m-n}}$</center></p>
+<p>where $m$ and $n$ are the closest years for which the population are available.</p>
+<div class="highlight"><pre><span class="c"># Aggregate the population growth rate</span>
+<span class="n">growth_rate</span> <span class="o">=</span> <span class="p">[]</span>
+
+<span class="k">for</span> <span class="n">i</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">3</span><span class="p">,</span> <span class="nb">len</span><span class="p">(</span><span class="n">city_info</span><span class="o">.</span><span class="n">columns</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span><span class="p">):</span>
+    <span class="n">year_span</span> <span class="o">=</span> <span class="n">city_info</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span><span class="o">.</span><span class="n">name</span> <span class="o">-</span> <span class="n">city_info</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span> <span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span><span class="o">.</span><span class="n">name</span>
+    <span class="n">rate</span> <span class="o">=</span> <span class="p">(</span><span class="n">city_info</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span> <span class="n">i</span><span class="p">]</span> <span class="o">/</span> <span class="n">city_info</span><span class="o">.</span><span class="n">ix</span><span class="p">[:,</span> <span class="n">i</span><span class="o">-</span><span class="mi">1</span><span class="p">])</span><span class="o">**</span><span class="p">(</span><span class="mf">1.0</span><span class="o">/</span><span class="n">year_span</span><span class="p">)</span>
+
+    <span class="n">growth_rate</span> <span class="o">=</span> <span class="n">growth_rate</span> <span class="o">+</span> <span class="n">rate</span><span class="o">.</span><span class="n">tolist</span><span class="p">()</span>
+
+<span class="n">growth_rate</span> <span class="o">=</span> <span class="n">array</span><span class="p">(</span><span class="nb">list</span><span class="p">(</span><span class="nb">filter</span><span class="p">(</span><span class="k">lambda</span> <span class="n">x</span><span class="p">:</span> <span class="ow">not</span> <span class="n">isnan</span><span class="p">(</span><span class="n">x</span><span class="p">),</span> <span class="n">growth_rate</span><span class="p">)))</span>
+</pre></div>
+
+
+<p>Let's visualize $g$, and see its statistics:</p>
+<div class="highlight"><pre><span class="kn">import</span> <span class="nn">scipy.stats</span> <span class="kn">as</span> <span class="nn">stats</span>
+<span class="n">grid</span><span class="p">()</span>
+<span class="n">xlim</span><span class="p">(</span><span class="mf">0.8</span><span class="p">,</span> <span class="mf">1.2</span><span class="p">)</span>
+<span class="n">xlabel</span><span class="p">(</span><span class="s">r&quot;$g$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ylabel</span><span class="p">(</span><span class="s">r&quot;$\mathrm{p.d.f}(g)$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">m</span><span class="p">,</span> <span class="n">bins</span><span class="p">,</span> <span class="n">patches</span> <span class="o">=</span> <span class="n">hist</span><span class="p">(</span><span class="n">growth_rate</span><span class="p">,</span> <span class="n">bins</span><span class="o">=</span><span class="n">arange</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">2</span><span class="p">,</span> <span class="mf">0.005</span><span class="p">),</span> <span class="n">normed</span><span class="o">=</span><span class="mi">1</span><span class="p">)</span>
+<span class="n">smoothed_kde</span> <span class="o">=</span> <span class="n">stats</span><span class="o">.</span><span class="n">kde</span><span class="o">.</span><span class="n">gaussian_kde</span><span class="p">(</span><span class="n">growth_rate</span><span class="p">)</span>
+<span class="n">plot</span><span class="p">(</span><span class="n">bins</span><span class="p">,</span> <span class="n">smoothed_kde</span><span class="p">(</span><span class="n">bins</span><span class="p">),</span> <span class="s">&quot;r-&quot;</span><span class="p">)</span>
+<span class="n">title</span><span class="p">(</span><span class="s">r&quot;Distribution of fractional growth rate $g$&quot;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="k">print</span><span class="p">(</span><span class="n">pd</span><span class="o">.</span><span class="n">DataFrame</span><span class="p">(</span><span class="n">growth_rate</span><span class="p">)</span><span class="o">.</span><span class="n">describe</span><span class="p">())</span>
+
+                  <span class="mi">0</span>
+<span class="n">count</span>  <span class="mf">13181.000000</span>
+<span class="n">mean</span>       <span class="mf">1.014760</span>
+<span class="n">std</span>        <span class="mf">0.037122</span>
+<span class="nb">min</span>        <span class="mf">0.458158</span>
+<span class="mi">25</span><span class="o">%</span>        <span class="mf">0.999714</span>
+<span class="mi">50</span><span class="o">%</span>        <span class="mf">1.008311</span>
+<span class="mi">75</span><span class="o">%</span>        <span class="mf">1.021703</span>
+<span class="nb">max</span>        <span class="mf">2.892381</span>
+
+<span class="p">[</span><span class="mi">8</span> <span class="n">rows</span> <span class="n">x</span> <span class="mi">1</span> <span class="n">columns</span><span class="p">]</span>
+</pre></div>
+
+
+<p><center>
+<img alt="png" src="/images/Zipf_29_1.png" />
+</center></p>
+<h2>Simulation Result</h2>
+<p>We set up the simulation initial conditions.</p>
+<div class="highlight"><pre><span class="n">num_year</span> <span class="o">=</span> <span class="mi">2500</span>
+<span class="n">num_city</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">valid_population</span><span class="p">)</span>
+<span class="n">total_population</span> <span class="o">=</span> <span class="mf">3.139e8</span>
+<span class="n">mean_growth_rate</span> <span class="o">=</span> <span class="mf">1.01476</span>
+<span class="n">initial_population</span> <span class="o">=</span> <span class="n">ones</span><span class="p">(</span><span class="n">num_city</span><span class="p">)</span> <span class="o">*</span> <span class="n">total_population</span> <span class="o">/</span> <span class="n">mean_growth_rate</span><span class="o">**</span><span class="p">(</span><span class="n">num_year</span><span class="p">)</span> <span class="o">/</span> <span class="n">num_city</span>
+</pre></div>
+
+
+<p>Now we randomly generate the growth rate $g$ per year per city, and store the
+result in a 2D matrix. Then we take the product along the year axis, which
+multiplied by the initial population yields the simulated population today.</p>
+<div class="highlight"><pre><span class="c"># Generate the growth rate</span>
+<span class="n">g</span> <span class="o">=</span> <span class="n">smoothed_kde</span><span class="o">.</span><span class="n">resample</span><span class="p">(</span><span class="n">num_year</span> <span class="o">*</span> <span class="n">num_city</span><span class="p">)</span><span class="o">.</span><span class="n">reshape</span><span class="p">(</span><span class="n">num_year</span><span class="p">,</span> <span class="n">num_city</span><span class="p">)</span>
+
+
+<span class="n">population_sim</span> <span class="o">=</span> <span class="n">p0</span> <span class="o">*</span> <span class="n">g</span><span class="o">.</span><span class="n">prod</span><span class="p">(</span><span class="n">axis</span><span class="o">=</span><span class="mi">0</span><span class="p">)</span>
+<span class="n">mybins</span> <span class="o">=</span> <span class="n">arange</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span> <span class="mi">16</span><span class="p">,</span> <span class="mf">0.2</span><span class="p">)</span>
+
+<span class="n">hist</span><span class="p">(</span><span class="n">log</span><span class="p">(</span><span class="n">valid_population</span><span class="p">),</span> <span class="n">bins</span><span class="o">=</span><span class="n">mybins</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;r&#39;</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;Data from Census&#39;</span><span class="p">)</span>
+<span class="n">hist</span><span class="p">(</span><span class="n">log</span><span class="p">(</span><span class="n">population_sim</span><span class="p">),</span> <span class="n">bins</span><span class="o">=</span><span class="n">mybins</span><span class="p">,</span> <span class="n">color</span><span class="o">=</span><span class="s">&#39;b&#39;</span><span class="p">,</span> <span class="n">normed</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">label</span><span class="o">=</span><span class="s">&#39;Monte-Carlo Sim.&#39;</span><span class="p">,</span> <span class="n">alpha</span><span class="o">=</span><span class="mf">0.5</span><span class="p">)</span>
+<span class="n">xlabel</span><span class="p">(</span><span class="s">r&#39;$\ln p$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">ylabel</span><span class="p">(</span><span class="s">r&#39;$\mathrm{pdf}(\ln p)$&#39;</span><span class="p">,</span> <span class="n">fontsize</span><span class="o">=</span><span class="mi">15</span><span class="p">)</span>
+<span class="n">xlim</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="mi">16</span><span class="p">)</span>
+<span class="n">legend</span><span class="p">()</span>
+<span class="n">grid</span><span class="p">()</span>
+</pre></div>
+
+
+<p><center>
+<img alt="png" src="/images/Zipf_35_0.png" />
+</center></p>
+<p>The actual and simulated population are shown above.Although their centers are
+aligned, Census data show a slightly larger width.  Given the minimal
+assumptions we make along with the simplicity of the model, the agreement is not
+too bad! We can even use this random growth model to predict population 100
+years from now, but I will leave that to you :)</p>
+<h1>References</h1>
+<p><a name="census_data"></a>
+1. <a href="https://www.census.gov/popest/data/cities/totals/2012/SUB-EST2012.html">Incorporated Places and Minor Civil Divisions Datasets: Subcounty Resident
+Population Estimates: April 1, 2010 to July 1, 2012</a></p>
+<p><a name="Eeckhout"></a>
+2. Eeckhout, Jan. 2004. "Gibrat's Law for (All) Cities." American Economic
+Review, 94(5): 1429-1451.</p>
+<p><a name="Ref1"></a>
+3. Web Scraping 101 with Python, Greg Reda <a href="http://www.gregreda.com/2013/03/03/web-scraping-101-with-python/">link</a></p>
+<p><a name="Ref2"></a>
+4. HTML4 and HTML5 Tutorial <a href="http://www.w3schools.com/html/DEFAULT.asp">link</a></p>
+<p><a name="FirstCity"></a>
+5. List of North American settlements by year of foundation, http://en.wikipedia
+.org/wiki/List_of_North_American_settlements_by_year_of_foundation</p><script type= "text/javascript">
+    if (!document.getElementById('mathjaxscript_pelican_#%@#$@#')) {
+        var mathjaxscript = document.createElement('script');
+        mathjaxscript.id = 'mathjaxscript_pelican_#%@#$@#';
+        mathjaxscript.type = 'text/javascript';
+        mathjaxscript.src = 'https:' == document.location.protocol
+                ? 'https://c328740.ssl.cf1.rackcdn.com/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML'
+                : 'http://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML';
+        mathjaxscript[(window.opera ? "innerHTML" : "text")] =
+            "MathJax.Hub.Config({" +
+            "    config: ['MMLorHTML.js']," +
+            "    TeX: { extensions: ['AMSmath.js','AMSsymbols.js','noErrors.js','noUndefined.js'], equationNumbers: { autoNumber: 'AMS' } }," +
+            "    jax: ['input/TeX','input/MathML','output/HTML-CSS']," +
+            "    extensions: ['tex2jax.js','mml2jax.js','MathMenu.js','MathZoom.js']," +
+            "    displayAlign: 'center'," +
+            "    displayIndent: '0em'," +
+            "    showMathMenu: true," +
+            "    tex2jax: { " +
+            "        inlineMath: [ ['$','$'] ], " +
+            "        displayMath: [ ['$$','$$'] ]," +
+            "        processEscapes: true," +
+            "        preview: 'TeX'," +
+            "    }, " +
+            "    'HTML-CSS': { " +
+            "        styles: { '.MathJax_Display, .MathJax .mo, .MathJax .mi, .MathJax .mn': {color: 'black ! important'} }" +
+            "    } " +
+            "}); ";
+        (document.body || document.getElementsByTagName('head')[0]).appendChild(mathjaxscript);
+    }
+</script>
+ 
+	<a class="btn btn-mini xsmall" href="/my-super-post.html">
+          <i class="icon-comment"></i> Comment </a>
+	<hr />
+      </div>
+      
+    </div>
+    
+<div class="pagination">
+<ul>
+    <li class="prev disabled"><a href="#">&larr; Previous</a></li>
+
+    <li class="active"><a href="/tag/ipython.html">1</a></li>
+
+    <li class="next disabled"><a href="#">&rarr; Next</a></li>
+
+</ul>
+</div>
+ 
+  
+        </div>
+        
+        
+    </div>     </div> </div>
+
+<!--footer-->
+<div class="container">
+  <div class="well" style="background-color: #E9EFF6">
+    <div id="blog-footer">
+      <div class="row-fluid">
+	<div class="site-nav span2" align="center">
+          <ul class="nav nav-list" id="site-links">
+            <li class="nav-header"> 
+              Site
+            </li>
+            <li><a href=""><i class="icon-home" style="color: #1f334b">
+                </i>Home</a></li>
+            <li><a href="/archives.html"><i class="icon-list" style="color: #1f334b">
+                </i>Archives</a></li>
+	    <li><a href="/tags.html"><i class="icon-tags" style="color: #1f334b">
+                </i>Tags</a></li>
+	    
+            <li><a href="/" rel="alternate">
+                <i class="icon-rss-sign" style="color: #1f334b"></i>
+                Atom Feed</a></li>
+	  </ul>
+
+        </div>
+
+      </div> <!--end of fluid row-->
+    </div> <!--end of blog-footer-->
+    <hr />
+    <p align="center"><a href="">Kuantum Field</a>
+      &copy; K. Chen
+    Powered by <a href="github.com/getpelican/pelican">Pelican</a> and
+        <a href="https://twitter.github.com/bootstrap">Twitter Bootstrap</a>. 
+        Icons by <a href="http://fortawesome.github.com/Font-Awesome">Font Awesome</a> and 
+        <a href="http://gregoryloucas.github.com/Font-Awesome-More">Font Awesome More</a></p>
+
+  </div> <!--end of well -->
+</div> <!--end of container -->
+
+<!--/footer-->
+<script src="//ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script src="//netdna.bootstrapcdn.com/twitter-bootstrap/2.2.2/js/bootstrap.min.js"></script>
+
+
+
+</body>
+</html>
